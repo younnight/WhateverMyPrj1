@@ -40,6 +40,7 @@ public class PhoneMainActivity extends Activity implements View.OnClickListener,
     private static final int REQUEST_RESOLVE_ERROR = 1000;
 
     private static final String START_ACTIVITY_PATH = "/start-activity";
+    private String dbgSensorDataStr = "/test-sensor-data";
 
     private GoogleApiClient mGoogleApiClient;
     private boolean mResolvingError = false;
@@ -124,11 +125,6 @@ public class PhoneMainActivity extends Activity implements View.OnClickListener,
         switch(v.getId()){
             case R.id.startActivityBtn:
                 new StartWearableActivityTask().execute();
-                /*
-                //test
-                testPrintTextView.append("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-                testPrintScrollView.fullScroll(View.FOCUS_DOWN);
-                */
                 break;
 
             default:
@@ -193,7 +189,19 @@ public class PhoneMainActivity extends Activity implements View.OnClickListener,
 
     @Override
     public void onMessageReceived(MessageEvent messageEvent) {
-
+        Log.e(TAG, "onMessageReceived: " + messageEvent);
+        if (messageEvent.getPath().equals(dbgSensorDataStr)) {
+            final String str = String.valueOf(messageEvent.getData());
+            this.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    testPrintTextView.append(str);
+                    testPrintTextView.append("");
+                    testPrintTextView.append("");
+                    testPrintScrollView.fullScroll(View.FOCUS_DOWN);
+                }
+            });
+        }
     }
 
     @Override
