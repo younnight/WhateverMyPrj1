@@ -44,6 +44,21 @@ public class WearMainActivity extends Activity implements SensorEventListener, D
     private SensorManager manager;
     private Sensor accel;
 
+    private int MAX_DATA_SIZE = 20;
+    private float xValues[] = new float[MAX_DATA_SIZE];
+    private float yValues[] = new float[MAX_DATA_SIZE];
+    private float zValues[] = new float[MAX_DATA_SIZE];
+    private int xyzValuesIdx = 0;
+    private long mDataAddedTime = 0;
+
+    private int xPositiveGesture;// 0 : on state, 1 : possible state, 2 : confirmed.
+    private int yPositiveGesture;
+    private int zPositiveGesture;
+    private int xNegativeGesture;
+    private int yNegativeGesture;
+    private int zNegativeGesture;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -72,10 +87,83 @@ public class WearMainActivity extends Activity implements SensorEventListener, D
         float xValue = event.values[0];
         float yValue = event.values[1];
         float zValue = event.values[2];
+        byte gestureResult[] = new byte[6];
 
         if(Math.abs(xValue) > 10 || Math.abs(yValue) > 10 || Math.abs(zValue) > 10){
+            long currentTime = System.currentTimeMillis();
+            if(mDataAddedTime != 0 && (currentTime - mDataAddedTime > 1000)) {
+                //init data array...
+                xyzValuesIdx = 0;
 
-            new SendSensorDataTask().execute();
+                xPositiveGesture = 0;
+                xNegativeGesture = 0;
+                yPositiveGesture = 0;
+                yNegativeGesture = 0;
+                zPositiveGesture = 0;
+                zNegativeGesture = 0;
+                gestureResult = new byte[6];
+            }
+
+            mDataAddedTime = currentTime;
+
+            //add data to array.
+            xValues[xyzValuesIdx] = xValue;
+            yValues[xyzValuesIdx] = yValue;
+            zValues[xyzValuesIdx++] = zValue;
+            if(xyzValuesIdx == MAX_DATA_SIZE) {
+                //not expected.
+                Log.e(TAG, "onSensorChanged: data overflow...............................");
+                xyzValuesIdx--;
+            }
+
+            //analyze data.
+            if(xValue < -10 && xPositiveGesture == 0){
+                xNegativeGesture = 1;
+            }
+            if(yValue < -10 && yPositiveGesture == 0){
+                yNegativeGesture = 1;
+            }
+            if(zValue < -10 && zPositiveGesture == 0){
+                zNegativeGesture = 1;
+            }
+            if(xValue > 10 && xNegativeGesture == 1){
+                xNegativeGesture = 2;
+                gestureResult[0] = 1;
+            }
+            if(yValue > 10 && yNegativeGesture == 1){
+                yNegativeGesture = 2;
+                gestureResult[1] = 1;
+            }
+            if(zValue > 10 && zNegativeGesture == 1){
+                zNegativeGesture = 2;
+                gestureResult[2] = 1;
+            }
+
+            if(xValue > 10 && xNegativeGesture == 0){
+                xPositiveGesture = 1;
+            }
+            if(yValue > 10 && yNegativeGesture == 0){
+                yPositiveGesture = 1;
+            }
+            if(zValue > 10 && zNegativeGesture == 0){
+                zPositiveGesture = 1;
+            }
+            if(xValue < -10 && xPositiveGesture == 1){
+                xPositiveGesture = 2;
+                gestureResult[3] = 1;
+            }
+            if(yValue < -10 && yPositiveGesture == 1){
+                yPositiveGesture = 2;
+                gestureResult[4] = 1;
+            }
+            if(zValue < -10 && zPositiveGesture == 1){
+                zPositiveGesture = 2;
+                gestureResult[5] = 1;
+            }
+
+            if(xPositiveGesture==2 || yPositiveGesture==2 || zPositiveGesture==2 || xNegativeGesture==2 || yNegativeGesture==2 || zNegativeGesture==2) {
+                new SendSensorDataTask(gestureResult).execute();
+            }
 
             final String str = xValue + " " + yValue + " " + zValue;
 
@@ -83,9 +171,9 @@ public class WearMainActivity extends Activity implements SensorEventListener, D
         }
     }
 
-    private void sendSensorDataMessage(String node) {
+    private void sendSensorDataMessage(String node, byte[] data) {
         Wearable.MessageApi.sendMessage(
-                mGoogleApiClient, node, dbgSensorDataStr, (new String("kkk").getBytes())).setResultCallback(
+                mGoogleApiClient, node, dbgSensorDataStr, data).setResultCallback(
                 new ResultCallback<MessageApi.SendMessageResult>() {
                     @Override
                     public void onResult(MessageApi.SendMessageResult sendMessageResult) {
@@ -99,11 +187,16 @@ public class WearMainActivity extends Activity implements SensorEventListener, D
     }
 
     private class SendSensorDataTask extends AsyncTask<Void, Void, Void> {
+        byte[] mData;
+        SendSensorDataTask(byte[] data){
+            mData = data;
+        }
+
         @Override
         protected Void doInBackground(Void... args) {
             Collection<String> nodes = getNodes();
             for (String node : nodes) {
-                sendSensorDataMessage(node);
+                sendSensorDataMessage(node, mData);
             }
             return null;
         }

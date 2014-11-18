@@ -191,13 +191,29 @@ public class PhoneMainActivity extends Activity implements View.OnClickListener,
     public void onMessageReceived(MessageEvent messageEvent) {
         Log.e(TAG, "onMessageReceived: " + messageEvent);
         if (messageEvent.getPath().equals(dbgSensorDataStr)) {
-            final String str = String.valueOf(messageEvent.getData());
+            final byte[] gestureResult = messageEvent.getData();
             this.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    testPrintTextView.append(str);
-                    testPrintTextView.append("");
-                    testPrintTextView.append("");
+                    if(gestureResult[0] == 1){
+                        testPrintTextView.append("-X ");
+                    }
+                    if(gestureResult[1] == 1){
+                        testPrintTextView.append("-Y ");
+                    }
+                    if(gestureResult[2] == 1){
+                        testPrintTextView.append("-Z ");
+                    }
+                    if(gestureResult[3] == 1){
+                        testPrintTextView.append("+X ");
+                    }
+                    if(gestureResult[4] == 1){
+                        testPrintTextView.append("+Y ");
+                    }
+                    if(gestureResult[5] == 1){
+                        testPrintTextView.append("+Z ");
+                    }
+                    testPrintTextView.append("\n\n");
                     testPrintScrollView.fullScroll(View.FOCUS_DOWN);
                 }
             });
