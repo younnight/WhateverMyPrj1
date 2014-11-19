@@ -26,7 +26,7 @@ import com.google.android.gms.wearable.Wearable;
 
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.concurrent.TimeUnit;
+import java.util.List;
 
 public class WearMainActivity extends Activity implements SensorEventListener, DataApi.DataListener,
         MessageApi.MessageListener, NodeApi.NodeListener, GoogleApiClient.ConnectionCallbacks,
@@ -41,8 +41,10 @@ public class WearMainActivity extends Activity implements SensorEventListener, D
 
     private String dbgSensorDataStr = "/test-sensor-data";
 
-    private SensorManager manager;
-    private Sensor accel;
+    private SensorManager mSensorManager;
+    private Sensor mAccelerometer;
+
+    private final int mAccelGestureThreshold = 7;
 
     private int MAX_DATA_SIZE = 20;
     private float xValues[] = new float[MAX_DATA_SIZE];
@@ -57,6 +59,10 @@ public class WearMainActivity extends Activity implements SensorEventListener, D
     private int xNegativeGesture;
     private int yNegativeGesture;
     private int zNegativeGesture;
+
+    private int mTrashDataCount = 0;
+
+    byte gestureResult[] = new byte[6];
 
 
     @Override
@@ -78,8 +84,21 @@ public class WearMainActivity extends Activity implements SensorEventListener, D
                 .addOnConnectionFailedListener(this)
                 .build();
 
-        manager = (SensorManager)getSystemService(SENSOR_SERVICE);
-        accel = manager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+        mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
+        mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+    }
+
+    private void clearDataInfo(){
+        //init data array...
+        xyzValuesIdx = 0;
+
+        xPositiveGesture = 0;
+        xNegativeGesture = 0;
+        yPositiveGesture = 0;
+        yNegativeGesture = 0;
+        zPositiveGesture = 0;
+        zNegativeGesture = 0;
+        gestureResult = new byte[6];
     }
 
     @Override
@@ -87,88 +106,86 @@ public class WearMainActivity extends Activity implements SensorEventListener, D
         float xValue = event.values[0];
         float yValue = event.values[1];
         float zValue = event.values[2];
-        byte gestureResult[] = new byte[6];
 
-        if(Math.abs(xValue) > 10 || Math.abs(yValue) > 10 || Math.abs(zValue) > 10){
-            long currentTime = System.currentTimeMillis();
-            if(mDataAddedTime != 0 && (currentTime - mDataAddedTime > 1000)) {
-                //init data array...
-                xyzValuesIdx = 0;
+        if(event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION) {
 
-                xPositiveGesture = 0;
-                xNegativeGesture = 0;
-                yPositiveGesture = 0;
-                yNegativeGesture = 0;
-                zPositiveGesture = 0;
-                zNegativeGesture = 0;
-                gestureResult = new byte[6];
-            }
+            if (Math.abs(xValue) > mAccelGestureThreshold || Math.abs(yValue) > mAccelGestureThreshold || Math.abs(zValue) > mAccelGestureThreshold) {
+                mTrashDataCount = 0;
 
-            mDataAddedTime = currentTime;
+                long currentTime = System.currentTimeMillis();
+                if (mDataAddedTime != 0 && (currentTime - mDataAddedTime > 1000)) {
+                    clearDataInfo();
+                }
 
-            //add data to array.
-            xValues[xyzValuesIdx] = xValue;
-            yValues[xyzValuesIdx] = yValue;
-            zValues[xyzValuesIdx++] = zValue;
-            if(xyzValuesIdx == MAX_DATA_SIZE) {
-                //not expected.
-                Log.e(TAG, "onSensorChanged: data overflow...............................");
-                xyzValuesIdx--;
-            }
+                mDataAddedTime = currentTime;
 
-            //analyze data.
-            if(xValue < -10 && xPositiveGesture == 0){
-                xNegativeGesture = 1;
-            }
-            if(yValue < -10 && yPositiveGesture == 0){
-                yNegativeGesture = 1;
-            }
-            if(zValue < -10 && zPositiveGesture == 0){
-                zNegativeGesture = 1;
-            }
-            if(xValue > 10 && xNegativeGesture == 1){
-                xNegativeGesture = 2;
-                gestureResult[0] = 1;
-            }
-            if(yValue > 10 && yNegativeGesture == 1){
-                yNegativeGesture = 2;
-                gestureResult[1] = 1;
-            }
-            if(zValue > 10 && zNegativeGesture == 1){
-                zNegativeGesture = 2;
-                gestureResult[2] = 1;
-            }
+                //add data to array.
+                xValues[xyzValuesIdx] = xValue;
+                yValues[xyzValuesIdx] = yValue;
+                zValues[xyzValuesIdx++] = zValue;
+                if (xyzValuesIdx == MAX_DATA_SIZE) {
+                    //not expected.
+                    Log.e(TAG, "onSensorChanged: data overflow...............................");
+                    xyzValuesIdx--;
+                }
 
-            if(xValue > 10 && xNegativeGesture == 0){
-                xPositiveGesture = 1;
-            }
-            if(yValue > 10 && yNegativeGesture == 0){
-                yPositiveGesture = 1;
-            }
-            if(zValue > 10 && zNegativeGesture == 0){
-                zPositiveGesture = 1;
-            }
-            if(xValue < -10 && xPositiveGesture == 1){
-                xPositiveGesture = 2;
-                gestureResult[3] = 1;
-            }
-            if(yValue < -10 && yPositiveGesture == 1){
-                yPositiveGesture = 2;
-                gestureResult[4] = 1;
-            }
-            if(zValue < -10 && zPositiveGesture == 1){
-                zPositiveGesture = 2;
-                gestureResult[5] = 1;
-            }
+                //analyze data.
+                if (xValue < -mAccelGestureThreshold && xPositiveGesture == 0) {
+                    xNegativeGesture = 1;
+                }
+                if (yValue < -mAccelGestureThreshold && yPositiveGesture == 0) {
+                    yNegativeGesture = 1;
+                }
+                if (zValue < -mAccelGestureThreshold && zPositiveGesture == 0) {
+                    zNegativeGesture = 1;
+                }
+                if (xValue > mAccelGestureThreshold && xNegativeGesture == 1) {
+                    xNegativeGesture = 2;
+                    gestureResult[0] = 1;
+                }
+                if (yValue > mAccelGestureThreshold && yNegativeGesture == 1) {
+                    yNegativeGesture = 2;
+                    gestureResult[1] = 1;
+                }
+                if (zValue > mAccelGestureThreshold && zNegativeGesture == 1) {
+                    zNegativeGesture = 2;
+                    gestureResult[2] = 1;
+                }
 
-            if(xPositiveGesture==2 || yPositiveGesture==2 || zPositiveGesture==2 || xNegativeGesture==2 || yNegativeGesture==2 || zNegativeGesture==2) {
-                new SendSensorDataTask(gestureResult).execute();
+                if (xValue > mAccelGestureThreshold && xNegativeGesture == 0) {
+                    xPositiveGesture = 1;
+                }
+                if (yValue > mAccelGestureThreshold && yNegativeGesture == 0) {
+                    yPositiveGesture = 1;
+                }
+                if (zValue > mAccelGestureThreshold && zNegativeGesture == 0) {
+                    zPositiveGesture = 1;
+                }
+                if (xValue < -mAccelGestureThreshold && xPositiveGesture == 1) {
+                    xPositiveGesture = 2;
+                    gestureResult[3] = 1;
+                }
+                if (yValue < -mAccelGestureThreshold && yPositiveGesture == 1) {
+                    yPositiveGesture = 2;
+                    gestureResult[4] = 1;
+                }
+                if (zValue < -mAccelGestureThreshold && zPositiveGesture == 1) {
+                    zPositiveGesture = 2;
+                    gestureResult[5] = 1;
+                }
+
+            } else {
+                mTrashDataCount++;
+                if (mTrashDataCount == 10) { //check only 10 trash data counted..
+                    if (xPositiveGesture == 2 || yPositiveGesture == 2 || zPositiveGesture == 2 || xNegativeGesture == 2 || yNegativeGesture == 2 || zNegativeGesture == 2) {
+
+                        new SendSensorDataTask(gestureResult).execute();
+                        clearDataInfo();
+                    }
+                }
             }
-
-            final String str = xValue + " " + yValue + " " + zValue;
-
-            Log.e(TAG, "onSensorChanged:" + str);
         }
+
     }
 
     private void sendSensorDataMessage(String node, byte[] data) {
@@ -213,13 +230,13 @@ public class WearMainActivity extends Activity implements SensorEventListener, D
     @Override
     public void onResume() {
         super.onResume();
-        manager.registerListener(this, accel, SensorManager.SENSOR_DELAY_GAME);
+        mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_GAME);
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        manager.unregisterListener(this);
+        mSensorManager.unregisterListener(this);
     }
 
     @Override

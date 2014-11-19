@@ -47,6 +47,7 @@ public class PhoneMainActivity extends Activity implements View.OnClickListener,
     private ScheduledExecutorService mGeneratorExecutor;
 
     Button startActivityBtn;
+    Button clearTextViewBtn;
     TextView testPrintTextView;
     ScrollView testPrintScrollView;
 
@@ -56,7 +57,9 @@ public class PhoneMainActivity extends Activity implements View.OnClickListener,
         setContentView(R.layout.activity_phone_main);
 
         startActivityBtn = (Button)findViewById(R.id.startActivityBtn);
+        clearTextViewBtn = (Button)findViewById(R.id.clearTextViewBtn);
         startActivityBtn.setOnClickListener(this);
+        clearTextViewBtn.setOnClickListener(this);
         testPrintTextView = (TextView)findViewById(R.id.testPrinttextView);
         testPrintScrollView = (ScrollView)findViewById(R.id.testPrintscrollView);
 
@@ -126,7 +129,9 @@ public class PhoneMainActivity extends Activity implements View.OnClickListener,
             case R.id.startActivityBtn:
                 new StartWearableActivityTask().execute();
                 break;
-
+            case R.id.clearTextViewBtn:
+                testPrintTextView.setText("");
+                break;
             default:
                 break;
         }
