@@ -4,13 +4,17 @@ import android.app.Activity;
 import android.content.IntentSender;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.text.Layout;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.Window;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
@@ -51,9 +55,13 @@ public class PhoneMainActivity extends Activity implements View.OnClickListener,
     TextView testPrintTextView;
     ScrollView testPrintScrollView;
 
+    ImageView mImgView[] = new ImageView[10];
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+
         setContentView(R.layout.activity_phone_main);
 
         startActivityBtn = (Button)findViewById(R.id.startActivityBtn);
@@ -62,6 +70,16 @@ public class PhoneMainActivity extends Activity implements View.OnClickListener,
         clearTextViewBtn.setOnClickListener(this);
         testPrintTextView = (TextView)findViewById(R.id.testPrinttextView);
         testPrintScrollView = (ScrollView)findViewById(R.id.testPrintscrollView);
+
+        mImgView[1] = (ImageView)findViewById(R.id.imageView1);
+        mImgView[2] = (ImageView)findViewById(R.id.imageView2);
+        mImgView[3] = (ImageView)findViewById(R.id.imageView3);
+        mImgView[4] = (ImageView)findViewById(R.id.imageView4);
+        mImgView[5] = (ImageView)findViewById(R.id.imageView5);
+        mImgView[6] = (ImageView)findViewById(R.id.imageView6);
+        mImgView[7] = (ImageView)findViewById(R.id.imageView7);
+        mImgView[8] = (ImageView)findViewById(R.id.imageView8);
+        mImgView[9] = (ImageView)findViewById(R.id.imageView9);
 
         mGeneratorExecutor = new ScheduledThreadPoolExecutor(1);
 
@@ -192,6 +210,34 @@ public class PhoneMainActivity extends Activity implements View.OnClickListener,
 
     }
 
+
+    public Handler mActionHandler = new Handler() {
+        public void handleMessage(Message msg) {
+            Bundle data = msg.getData();
+            int viewNum = data.getInt("viewNum");
+
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            mImgView[viewNum].setImageResource(R.drawable.before);
+        }
+    };
+
+    private void doBalloonAction(int viewNum){
+        mImgView[viewNum].setImageResource(R.drawable.after);
+
+        Message msg = mActionHandler.obtainMessage();
+
+        Bundle bundle = new Bundle();
+        bundle.putInt("viewNum", viewNum);
+
+        msg.setData(bundle);
+        mActionHandler.sendMessage(msg);
+    }
+
     @Override
     public void onMessageReceived(MessageEvent messageEvent) {
         Log.e(TAG, "onMessageReceived: " + messageEvent);
@@ -200,26 +246,45 @@ public class PhoneMainActivity extends Activity implements View.OnClickListener,
             this.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    if(gestureResult[0] == 1){
-                        testPrintTextView.append("-X ");
-                    }
-                    if(gestureResult[1] == 1){
-                        testPrintTextView.append("-Y ");
-                    }
-                    if(gestureResult[2] == 1){
-                        testPrintTextView.append("-Z ");
-                    }
-                    if(gestureResult[3] == 1){
-                        testPrintTextView.append("+X ");
-                    }
-                    if(gestureResult[4] == 1){
-                        testPrintTextView.append("+Y ");
-                    }
-                    if(gestureResult[5] == 1){
-                        testPrintTextView.append("+Z ");
-                    }
+                    if(gestureResult[0] == 1){                        testPrintTextView.append("-X ");                    }
+                    if(gestureResult[1] == 1){                        testPrintTextView.append("-Y ");                    }
+                    if(gestureResult[2] == 1){                        testPrintTextView.append("-Z ");                    }
+                    if(gestureResult[3] == 1){                        testPrintTextView.append("+X ");                    }
+                    if(gestureResult[4] == 1){                        testPrintTextView.append("+Y ");                    }
+                    if(gestureResult[5] == 1){                        testPrintTextView.append("+Z ");                    }
                     testPrintTextView.append("\n\n");
                     testPrintScrollView.fullScroll(View.FOCUS_DOWN);
+
+                    //set balloon action.
+                    if(gestureResult[0] == 1 && gestureResult[5] == 1){
+                        doBalloonAction(1);
+                    }
+                    else if(gestureResult[3] == 1 && gestureResult[5] == 1){
+                        doBalloonAction(3);
+                    }
+                    else if(gestureResult[5] == 1){
+                        doBalloonAction(2);
+                    }
+
+                    if(gestureResult[0] == 1 && gestureResult[2] == 1){
+                        doBalloonAction(7);
+                    }
+                    else if(gestureResult[3] == 1 && gestureResult[2] == 1){
+                        doBalloonAction(9);
+                    }
+                    else if(gestureResult[2] == 1){
+                        doBalloonAction(8);
+                    }
+
+                    if(gestureResult[0] == 1){
+                        doBalloonAction(4);
+                    }
+                    if(gestureResult[4] == 1){
+                        doBalloonAction(5);
+                    }
+                    if(gestureResult[3] == 1){
+                        doBalloonAction(6);
+                    }
                 }
             });
         }
