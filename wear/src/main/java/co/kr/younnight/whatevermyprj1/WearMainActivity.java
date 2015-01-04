@@ -144,15 +144,15 @@ public class WearMainActivity extends Activity implements SensorEventListener, D
 		        }
 
 		        //analyze data.
-		        if (xValue < -mAccelGestureThreshold && xPositiveGesture == 0) {
+		        if (xValue < -mAccelGestureThreshold && xPositiveGesture == 0 && xNegativeGesture != 2) {
 			        xNegativeGesture = 1;
 			        Log.e(TAG, "xNegativeGesture = 1");
 		        }
-		        if (yValue < -mAccelGestureThreshold && yPositiveGesture == 0) {
+		        if (yValue < -mAccelGestureThreshold && yPositiveGesture == 0 && yNegativeGesture != 2) {
 			        yNegativeGesture = 1;
 			        Log.e(TAG, "yNegativeGesture = 1");
 		        }
-		        if (zValue < -mAccelGestureThreshold && zPositiveGesture == 0) {
+		        if (zValue < -mAccelGestureThreshold && zPositiveGesture == 0 && zNegativeGesture != 2) {
 			        zNegativeGesture = 1;
 			        Log.e(TAG, "zNegativeGesture = 1");
 		        }
@@ -172,15 +172,15 @@ public class WearMainActivity extends Activity implements SensorEventListener, D
 			        Log.e(TAG, "zNegativeGesture = 2");
 		        }
 
-		        if (xValue > mAccelGestureThreshold && xNegativeGesture == 0) {
+		        if (xValue > mAccelGestureThreshold && xNegativeGesture == 0 && xPositiveGesture != 2) {
 			        xPositiveGesture = 1;
 			        Log.e(TAG, "xPositiveGesture = 1");
 		        }
-		        if (yValue > mAccelGestureThreshold && yNegativeGesture == 0) {
+		        if (yValue > mAccelGestureThreshold && yNegativeGesture == 0 && yPositiveGesture != 2) {
 			        yPositiveGesture = 1;
 			        Log.e(TAG, "yPositiveGesture = 1");
 		        }
-		        if (zValue > mAccelGestureThreshold && zNegativeGesture == 0) {
+		        if (zValue > mAccelGestureThreshold && zNegativeGesture == 0 && zPositiveGesture != 2) {
 			        zPositiveGesture = 1;
 			        Log.e(TAG, "zPositiveGesture = 1");
 		        }
@@ -217,7 +217,6 @@ public class WearMainActivity extends Activity implements SensorEventListener, D
 				               else{
 					               Log.e(TAG, "NOT created");
 				               }
-
 			                }
 			                file = new File(directory + "tmp" + fileNameIdx + ".txt");
 			                if(!file.exists()) {
@@ -293,6 +292,7 @@ public class WearMainActivity extends Activity implements SensorEventListener, D
 
     @Override
     public void onResume() {
+	    //TODO make android wear device wake up when it is under suspend state.
         super.onResume();
 	    Log.e(TAG, "onResume #############################################");
         mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_GAME);
